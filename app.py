@@ -485,7 +485,16 @@ with tab1:
                 "fontWeight": "bold"
             })
 
-    # Canvas
+    # Ensure image is in RGB mode for canvas compatibility
+    if resized_image.mode != 'RGB':
+        resized_image = resized_image.convert('RGB')
+    
+    # Debug: Show image above canvas to verify it loads
+    with st.expander("🔍 Image Test (click to verify base map loads)", expanded=False):
+        st.image(resized_image, caption="Base map preview", use_container_width=True)
+        st.write(f"Image size: {resized_image.size}, Mode: {resized_image.mode}")
+    
+    # Canvas with unique key to prevent caching issues
     canvas_result = st_canvas(
         fill_color=selected_color,
         stroke_width=2,
@@ -496,7 +505,7 @@ with tab1:
         width=target_width,
         drawing_mode=canvas_drawing_mode,
         initial_drawing=initial_drawing,
-        key="canvas",
+        key=f"canvas_{st.session_state.student_id}",
     )
 
     # REFRESH BUTTON - RIGHT BELOW CANVAS FOR POLYGON MODE
