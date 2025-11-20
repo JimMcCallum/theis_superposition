@@ -1,5 +1,6 @@
 streamlit==1.40.0
 streamlit-drawable-canvas==0.9.3
+rich==13.9.4
 Pillow==10.3.0
 numpy==1.26.4
 pandas==2.2.2
