@@ -333,49 +333,21 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(["📍 Add Wells & Areas", "🔬 Pumping 
 # ============================================================================
 # TAB 1: ADD WELLS AND POLYGONS - WITH REFRESH BUTTON
 # ============================================================================
-# ============================================================================
-# TAB 1: ADD WELLS AND POLYGONS - WITH REFRESH BUTTON
-# ============================================================================
 with tab1:
     st.header("Well Placement & Area Definition")
     
-    # Load basemap or create blank canvas
-import os
-base_map_path = "Training_base_map.png"
-
-# Try multiple possible locations for the image
-possible_paths = [
-    base_map_path,  # Current directory
-    os.path.join(os.path.dirname(__file__), base_map_path),  # Same directory as script
-    os.path.join(os.getcwd(), base_map_path),  # Working directory
-]
-
-image_loaded = False
-for path_to_try in possible_paths:
-    if os.path.exists(path_to_try):
-        try:
-            original_image = Image.open(path_to_try)
-            target_width = 1000
-            scale = target_width / original_image.width
-            scaled_height = int(original_image.height * scale)
-            resized_image = original_image.resize((target_width, scaled_height))
-            image_loaded = True
-            st.success(f"✅ Base map loaded successfully")
-            break
-        except Exception as e:
-            continue  # Try next path
-
-if not image_loaded:
-    st.warning(f"⚠️ Base map not found. Using blank canvas.")
-    st.info("""
-    **To add your background image:**
-    1. Upload `Training_base_map.png` to your GitHub repository (same directory as app.py)
-    2. Commit and push the changes
-    3. Streamlit Cloud will automatically redeploy
-    """)
-    target_width = 1000
-    scaled_height = 666
-    resized_image = Image.new('RGB', (target_width, scaled_height), color='lightgray')
+    # Load basemap
+    try:
+        original_image = Image.open("Training_base_map.png")
+        target_width = 1000
+        scale = target_width / original_image.width
+        scaled_height = int(original_image.height * scale)
+        resized_image = original_image.resize((target_width, scaled_height))
+    except FileNotFoundError:
+        st.warning("Base map not found. Using blank canvas.")
+        resized_image = Image.new('RGB', (1000, 600), color='lightgray')
+        scaled_height = 600
+        target_width = 1000
 
     # Drawing mode selection
     col1, col2, col3 = st.columns([1, 1, 2])
@@ -501,16 +473,7 @@ if not image_loaded:
                 "fontWeight": "bold"
             })
 
-    # Ensure image is in RGB mode for canvas compatibility
-    if resized_image.mode != 'RGB':
-        resized_image = resized_image.convert('RGB')
-    
-    # Debug: Show image above canvas to verify it loads
-    with st.expander("🔍 Image Test (click to verify base map loads)", expanded=False):
-        st.image(resized_image, caption="Base map preview", use_container_width=True)
-        st.write(f"Image size: {resized_image.size}, Mode: {resized_image.mode}")
-    
-    # Canvas with unique key to prevent caching issues
+    # Canvas
     canvas_result = st_canvas(
         fill_color=selected_color,
         stroke_width=2,
@@ -521,7 +484,7 @@ if not image_loaded:
         width=target_width,
         drawing_mode=canvas_drawing_mode,
         initial_drawing=initial_drawing,
-        key=f"canvas_{st.session_state.student_id}",
+        key="canvas",
     )
 
     # REFRESH BUTTON - RIGHT BELOW CANVAS FOR POLYGON MODE
