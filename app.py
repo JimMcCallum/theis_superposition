@@ -331,10 +331,14 @@ if 'polygons' not in st.session_state:
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["📍 Add Wells & Areas", "🔬 Pumping Test", "📊 Area Analysis", "⛏️ Mine Dewatering", "📚 Help & Theory"])
 
 # ============================================================================
-# TAB 1: ADD WELLS AND AREAS (RECTANGLES ONLY) - SIMPLIFIED
+# TAB 1: ADD WELLS AND AREAS - WITH PROPER UPDATING
 # ============================================================================
 with tab1:
     st.header("Well Placement & Area Definition")
+    
+    # Initialize canvas refresh counter if not exists
+    if 'canvas_refresh' not in st.session_state:
+        st.session_state.canvas_refresh = 0
     
     # Load basemap
     try:
@@ -349,7 +353,7 @@ with tab1:
         scaled_height = 600
         target_width = 1000
 
-    # Drawing mode selection - REMOVED POLYGONS
+    # Drawing mode selection
     col1, col2, col3 = st.columns([1, 1, 2])
     with col1:
         drawing_mode = st.selectbox("Drawing Mode", ["Wells", "Areas (Rectangle)"])
@@ -358,23 +362,30 @@ with tab1:
         with col2:
             well_type = st.selectbox("Select Well Type", ["Pumping", "Injection", "Monitoring"])
         with col3:
-            st.info(f"💡 **Tip:** Draw circles on the map to place {well_type.lower()} wells. Each pixel = {PIXEL_TO_METER} meters.")
-    else:  # Rectangle mode only
+            st.info(f"💡 Draw circles to place {well_type.lower()} wells. Each pixel = {PIXEL_TO_METER} meters.")
+    else:  # Rectangle mode
         with col2:
             polygon_name = st.text_input("Area Name", value=f"Area_{len(st.session_state.polygons)+1}", key="rect_name_input")
         with col3:
-            st.info(f"💡 **Rectangle mode:** Click and drag to draw. Saves automatically!")
+            st.info(f"💡 Click and drag to draw rectangles. They save automatically!")
 
-    # Clear buttons
+    # Clear and Refresh buttons
     col1, col2, col3 = st.columns([1, 1, 2])
     with col1:
         if st.button("🗑️ Clear All Wells"):
             for key in ["wells_Pumping", "wells_Injection", "wells_Monitoring"]:
                 st.session_state[key] = []
+            st.session_state.canvas_refresh += 1
             st.rerun()
     with col2:
         if st.button("🗑️ Clear All Areas"):
             st.session_state.polygons = []
+            st.session_state.canvas_refresh += 1
+            st.rerun()
+    with col3:
+        # Manual refresh button for when canvas doesn't update
+        if st.button("🔄 Refresh Canvas", help="Click if your drawings don't appear"):
+            st.session_state.canvas_refresh += 1
             st.rerun()
     
     # Colors
@@ -463,19 +474,24 @@ with tab1:
                 "fontWeight": "bold"
             })
 
-    # Canvas - Compatible with both 0.8.0 and 0.9.3
+    # Canvas with dynamic key to force updates
+    canvas_key = f"canvas_{st.session_state.student_id}_{st.session_state.canvas_refresh}"
+    
     canvas_result = st_canvas(
         fill_color=selected_color,
         stroke_width=2,
-        stroke_color="rgba(0, 0, 0, 0)",  # No stroke for circles/rectangles
+        stroke_color="rgba(0, 0, 0, 0)",
         background_image=resized_image,
         update_streamlit=True,
         height=scaled_height,
         width=target_width,
         drawing_mode=canvas_drawing_mode,
         initial_drawing=initial_drawing,
-        key="canvas",
+        key=canvas_key,  # Dynamic key forces refresh
     )
+    
+    # Instruction text
+    st.caption("💡 **Tip:** After drawing, click the **🔄 Refresh Canvas** button above if your drawing doesn't save automatically.")
 
     # Process canvas objects
     if canvas_result.json_data is not None:
@@ -517,10 +533,12 @@ with tab1:
                             "label": label,
                             "type": well_type
                         })
+                        st.session_state.canvas_refresh += 1
+                        st.success(f"✅ Added {well_type} well: {label}")
                         st.rerun()
         
         elif drawing_mode == "Areas (Rectangle)":
-            # Process rectangles - auto-save
+            # Process rectangles
             canvas_rectangles = [obj for obj in canvas_objects if obj["type"] == "rect"]
             
             if len(canvas_rectangles) > 0:
@@ -562,6 +580,7 @@ with tab1:
                             "points_meter": points_meter,
                             "area_m2": area_m2
                         })
+                        st.session_state.canvas_refresh += 1
                         st.success(f"✅ Saved rectangle: {polygon_name} ({area_m2:.0f} m²)")
                         st.rerun()
 
@@ -571,25 +590,31 @@ with tab1:
     
     with col1:
         st.subheader("📋 Placed Wells Summary")
+        total_wells = sum(len(st.session_state[key]) for key in type_keys.values())
+        st.metric("Total Wells", total_wells)
+        
         cols = st.columns(3)
         for idx, (label, key) in enumerate(type_keys.items()):
             with cols[idx]:
-                st.write(f"**{label} Wells** ({len(st.session_state[key])})")
+                st.write(f"**{label}** ({len(st.session_state[key])})")
                 if st.session_state[key]:
                     for well in st.session_state[key]:
-                        st.text(f"{well['label']}: ({well['x']:.0f}, {well['y']:.0f}) m")
+                        st.caption(f"{well['label']}: ({well['x']:.0f}, {well['y']:.0f}) m")
                 else:
-                    st.caption(f"No {label.lower()} wells")
+                    st.caption(f"None")
     
     with col2:
         st.subheader("📐 Defined Areas")
+        st.metric("Total Areas", len(st.session_state.polygons))
+        
         if st.session_state.polygons:
             for i, poly in enumerate(st.session_state.polygons):
                 with st.expander(f"**{poly['name']}**", expanded=False):
                     st.metric("Area", f"{poly['area_m2']:.0f} m²")
-                    st.caption(f"Type: Rectangle (4 vertices)")
+                    st.caption(f"Type: Rectangle")
                     if st.button(f"🗑️ Remove", key=f"remove_poly_{i}"):
                         st.session_state.polygons.pop(i)
+                        st.session_state.canvas_refresh += 1
                         st.rerun()
         else:
             st.caption("No areas defined yet")
