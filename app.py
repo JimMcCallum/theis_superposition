@@ -331,7 +331,7 @@ if 'polygons' not in st.session_state:
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["📍 Add Wells & Areas", "🔬 Pumping Test", "📊 Area Analysis", "⛏️ Mine Dewatering", "📚 Help & Theory"])
 
 # ============================================================================
-# TAB 1: ADD WELLS AND POLYGONS - WITH REFRESH BUTTON
+# TAB 1: ADD WELLS AND AREAS (RECTANGLES ONLY) - SIMPLIFIED
 # ============================================================================
 with tab1:
     st.header("Well Placement & Area Definition")
@@ -349,28 +349,23 @@ with tab1:
         scaled_height = 600
         target_width = 1000
 
-    # Drawing mode selection
+    # Drawing mode selection - REMOVED POLYGONS
     col1, col2, col3 = st.columns([1, 1, 2])
     with col1:
-        drawing_mode = st.selectbox("Drawing Mode", ["Wells", "Areas (Polygons)", "Areas (Rectangle)"])
+        drawing_mode = st.selectbox("Drawing Mode", ["Wells", "Areas (Rectangle)"])
     
     if drawing_mode == "Wells":
         with col2:
             well_type = st.selectbox("Select Well Type", ["Pumping", "Injection", "Monitoring"])
         with col3:
             st.info(f"💡 **Tip:** Draw circles on the map to place {well_type.lower()} wells. Each pixel = {PIXEL_TO_METER} meters.")
-    elif drawing_mode == "Areas (Polygons)":
-        with col2:
-            polygon_name = st.text_input("Area Name", value=f"Area_{len(st.session_state.polygons)+1}", key="poly_name_input")
-        with col3:
-            st.info(f"💡 **Polygon mode:** Click points to draw, then click **Refresh** button below canvas to detect it!")
-    else:  # Rectangle mode
+    else:  # Rectangle mode only
         with col2:
             polygon_name = st.text_input("Area Name", value=f"Area_{len(st.session_state.polygons)+1}", key="rect_name_input")
         with col3:
             st.info(f"💡 **Rectangle mode:** Click and drag to draw. Saves automatically!")
 
-    # Add clear buttons
+    # Clear buttons
     col1, col2, col3 = st.columns([1, 1, 2])
     with col1:
         if st.button("🗑️ Clear All Wells"):
@@ -381,38 +376,21 @@ with tab1:
         if st.button("🗑️ Clear All Areas"):
             st.session_state.polygons = []
             st.rerun()
-    with col3:
-        if drawing_mode in ["Areas (Polygons)", "Areas (Rectangle)"]:
-            with st.expander("❓ Help", expanded=False):
-                st.markdown("""
-                **Rectangle Mode:**
-                - Click & drag → Auto-saves ✅
-                
-                **Polygon Mode:**
-                1. Click on canvas to add points (at least 3)
-                2. Click **🔄 Refresh** button below canvas
-                3. Click **💾 Save Polygon** button that appears
-                
-                **Why Refresh?**
-                The canvas doesn't auto-update in Streamlit. The Refresh button tells the app to check what you drew.
-                """)
     
     # Colors
     type_colors = {
         "Pumping": "rgba(0, 0, 255, 0.6)",
         "Injection": "rgba(0, 128, 0, 0.6)",
         "Monitoring": "rgba(255, 165, 0, 1.0)",
-        "Polygon": "rgba(255, 0, 255, 0.3)"
+        "Rectangle": "rgba(255, 0, 255, 0.3)"
     }
     
+    # Canvas configuration
     if drawing_mode == "Wells":
         selected_color = type_colors[well_type]
         canvas_drawing_mode = "circle"
-    elif drawing_mode == "Areas (Polygons)":
-        selected_color = type_colors["Polygon"]
-        canvas_drawing_mode = "polygon"
     else:  # Rectangle mode
-        selected_color = type_colors["Polygon"]
+        selected_color = type_colors["Rectangle"]
         canvas_drawing_mode = "rect"
     
     type_keys = {
@@ -422,7 +400,7 @@ with tab1:
     }
     type_prefix = {"Pumping": "P", "Injection": "I", "Monitoring": "M"}
 
-    # Prepare initial drawing
+    # Prepare initial drawing with existing wells
     initial_drawing = {"objects": []}
     
     # Add existing wells
@@ -448,24 +426,36 @@ with tab1:
                 "fill": color
             })
     
-    # Add existing polygons
+    # Add existing rectangles (stored as polygons with 4 vertices)
     for poly in st.session_state.polygons:
         points = poly['points_pixel']
-        if len(points) >= 3:
+        if len(points) == 4:  # Only show rectangles
+            # Calculate rectangle bounds
+            x_coords = [p[0] for p in points]
+            y_coords = [p[1] for p in points]
+            left = min(x_coords)
+            top = min(y_coords)
+            width = max(x_coords) - left
+            height = max(y_coords) - top
+            
             initial_drawing["objects"].append({
-                "type": "polygon",
-                "points": [{"x": p[0], "y": p[1]} for p in points],
+                "type": "rect",
+                "left": left,
+                "top": top,
+                "width": width,
+                "height": height,
                 "fill": "rgba(255, 0, 255, 0.2)",
                 "stroke": "rgba(255, 0, 255, 1.0)",
                 "strokeWidth": 2
             })
-            # Add label at centroid
-            centroid_x = np.mean([p[0] for p in points])
-            centroid_y = np.mean([p[1] for p in points])
+            
+            # Add label at center
+            center_x = left + width / 2
+            center_y = top + height / 2
             initial_drawing["objects"].append({
                 "type": "text",
-                "left": centroid_x,
-                "top": centroid_y,
+                "left": center_x - 20,
+                "top": center_y - 7,
                 "text": poly["name"],
                 "font": "Arial",
                 "fontSize": 14,
@@ -473,11 +463,11 @@ with tab1:
                 "fontWeight": "bold"
             })
 
-    # Canvas
+    # Canvas - Compatible with both 0.8.0 and 0.9.3
     canvas_result = st_canvas(
         fill_color=selected_color,
         stroke_width=2,
-        stroke_color="rgba(255, 0, 255, 1.0)" if drawing_mode == "Areas (Polygons)" else "rgba(0, 0, 0, 0)",
+        stroke_color="rgba(0, 0, 0, 0)",  # No stroke for circles/rectangles
         background_image=resized_image,
         update_streamlit=True,
         height=scaled_height,
@@ -487,99 +477,18 @@ with tab1:
         key="canvas",
     )
 
-    # REFRESH BUTTON - RIGHT BELOW CANVAS FOR POLYGON MODE
-    if drawing_mode == "Areas (Polygons)":
-        col1, col2, col3 = st.columns([2, 1, 2])
-        with col1:
-            st.caption("👆 After drawing your polygon, click Refresh to detect it →")
-        with col2:
-            refresh_clicked = st.button("🔄 Refresh", key="refresh_canvas", type="secondary")
-            if refresh_clicked:
-                st.rerun()
-        with col3:
-            st.caption("← Then the Save button will appear below")
-
-    # STORE CANVAS STATE FIRST - with real-time feedback
-    current_canvas_polygons = []
-    
-    if canvas_result.json_data is not None:
-        canvas_objects = canvas_result.json_data["objects"]
-        all_canvas_polygons = [obj for obj in canvas_objects if obj["type"] == "polygon"]
-        
-        # Separate saved vs unsaved polygons
-        for canvas_poly in all_canvas_polygons:
-            points = [(p["x"], p["y"]) for p in canvas_poly["points"]]
-            
-            # Check if this matches any saved polygon
-            is_saved = False
-            for saved_poly in st.session_state.polygons:
-                saved_points = saved_poly['points_pixel']
-                if len(saved_points) == len(points) and len(points) >= 3:
-                    # Compare first and last points
-                    if (abs(saved_points[0][0] - points[0][0]) < 3 and 
-                        abs(saved_points[0][1] - points[0][1]) < 3 and
-                        abs(saved_points[-1][0] - points[-1][0]) < 3 and 
-                        abs(saved_points[-1][1] - points[-1][1]) < 3):
-                        is_saved = True
-                        break
-            
-            if not is_saved and len(points) >= 3:
-                current_canvas_polygons.append(points)
-    
-    # FEEDBACK - Show what we found
-    if drawing_mode == "Areas (Polygons)":
-        if canvas_result.json_data is not None:
-            canvas_objects = canvas_result.json_data["objects"]
-            all_canvas_polygons = [obj for obj in canvas_objects if obj["type"] == "polygon"]
-            
-            if current_canvas_polygons:
-                st.success(f"✅ Detected {len(current_canvas_polygons)} new polygon(s) with {len(current_canvas_polygons[-1])} vertices - Ready to save!")
-            else:
-                if all_canvas_polygons:
-                    st.info(f"ℹ️ Found {len(all_canvas_polygons)} polygon(s) on canvas, but all are already saved. Draw a new one or click Refresh.")
-                else:
-                    st.info("ℹ️ No polygons detected on canvas yet. Click on the map to start drawing, then click Refresh!")
-        else:
-            st.warning("⚠️ Canvas not loaded yet. Please wait...")
-    
-    # SAVE BUTTON - BELOW DETECTION MESSAGE
-    if drawing_mode == "Areas (Polygons)" and current_canvas_polygons:
-        st.markdown("---")
-        col1, col2 = st.columns([3, 1])
-        
-        with col1:
-            latest_poly = current_canvas_polygons[-1]
-            area_pixels = 0.5 * abs(sum(x0*y1 - x1*y0 for ((x0, y0), (x1, y1)) 
-                                       in zip(latest_poly, latest_poly[1:] + [latest_poly[0]])))
-            area_m2 = area_pixels * (PIXEL_TO_METER ** 2)
-            st.info(f"📐 **Ready to save:** {len(latest_poly)} vertices, Area = {area_m2:.0f} m²")
-        
-        with col2:
-            if st.button("💾 Save Polygon", type="primary", key="save_poly_btn"):
-                points_pixel = latest_poly
-                points_meter = [(x * PIXEL_TO_METER, y * PIXEL_TO_METER) for x, y in points_pixel]
-                
-                st.session_state.polygons.append({
-                    "name": polygon_name,
-                    "points_pixel": points_pixel,
-                    "points_meter": points_meter,
-                    "area_m2": area_m2
-                })
-                
-                st.success(f"✅ Saved: **{polygon_name}** ({area_m2:.0f} m², {len(points_pixel)} vertices)")
-                st.rerun()
-
-    # PROCESS WELLS AND RECTANGLES (existing logic)
+    # Process canvas objects
     if canvas_result.json_data is not None:
         canvas_objects = canvas_result.json_data["objects"]
         
         if drawing_mode == "Wells":
-            # Process wells (existing logic)
+            # Process wells
             canvas_circles = [obj for obj in canvas_objects if obj["type"] == "circle"]
             current_canvas_count = len(canvas_circles)
             total_stored = sum(len(st.session_state[key]) for key in type_keys.values())
             
             if current_canvas_count > total_stored:
+                # Get all stored well coordinates
                 all_stored_coords = set()
                 for key in type_keys.values():
                     all_stored_coords.update({
@@ -588,6 +497,7 @@ with tab1:
                         for w in st.session_state[key]
                     })
 
+                # Add new wells
                 for obj in canvas_circles:
                     x_pixel = round(obj["left"] + obj["radius"], 1)
                     y_pixel = round(obj["top"] + obj["radius"], 1)
@@ -609,7 +519,8 @@ with tab1:
                         })
                         st.rerun()
         
-        elif drawing_mode == "Areas (Rectangle)":  # Rectangle mode - auto-save
+        elif drawing_mode == "Areas (Rectangle)":
+            # Process rectangles - auto-save
             canvas_rectangles = [obj for obj in canvas_objects if obj["type"] == "rect"]
             
             if len(canvas_rectangles) > 0:
@@ -620,6 +531,7 @@ with tab1:
                 height = rect_obj.get("height", 0)
                 
                 if width > 5 and height > 5:
+                    # Rectangle corners as polygon
                     points_pixel = [
                         (left, top),
                         (left + width, top),
@@ -627,7 +539,7 @@ with tab1:
                         (left, top + height)
                     ]
                     
-                    # Check if new
+                    # Check if this rectangle is new
                     is_new = True
                     for stored_poly in st.session_state.polygons:
                         if len(stored_poly['points_pixel']) == 4:
@@ -675,12 +587,13 @@ with tab1:
             for i, poly in enumerate(st.session_state.polygons):
                 with st.expander(f"**{poly['name']}**", expanded=False):
                     st.metric("Area", f"{poly['area_m2']:.0f} m²")
-                    st.caption(f"Vertices: {len(poly['points_meter'])}")
+                    st.caption(f"Type: Rectangle (4 vertices)")
                     if st.button(f"🗑️ Remove", key=f"remove_poly_{i}"):
                         st.session_state.polygons.pop(i)
                         st.rerun()
         else:
             st.caption("No areas defined yet")
+
 # ============================================================================
 # TAB 2: PUMPING TEST (UNCHANGED)
 # ============================================================================
