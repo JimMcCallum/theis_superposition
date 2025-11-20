@@ -341,8 +341,8 @@ with tab1:
     if 'polygons' not in st.session_state or len(st.session_state.polygons) == 0:
         st.session_state.polygons = [
             {
-                "name": "Area_A",
-                "points_meter": [(1000, 1000), (3000, 1000), (3000, 3000), (1000, 3000)],
+                "name": "Mine Pit Max Extent",
+                "points_meter": [(670,4500), (920,3840), (880, 3180), (900, 2520), (905,1860),(802,1300),(600,1500),(505,1860),(415,2520),(415,2520),(450,3180),(400,3840),(450,4500)],
                 "area_m2": 4000000,
                 "color": "#FF6B6B"
             },
