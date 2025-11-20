@@ -353,12 +353,12 @@ with tab1:
         except Exception as e:
             st.error(f"❌ Error loading image: {e}")
             target_width = 1000
-            scaled_height = 600
+            scaled_height = 666
             resized_image = Image.new('RGB', (target_width, scaled_height), color='lightgray')
     else:
         st.warning(f"⚠️ Base map not found at {base_map_path}")
         target_width = 1000
-        scaled_height = 600
+        scaled_height = 666
         resized_image = Image.new('RGB', (target_width, scaled_height), color='lightgray')
 
     # Drawing mode selection
