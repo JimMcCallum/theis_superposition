@@ -1,23 +1,7 @@
-# Groundwater Simulator Requirements
-# Python 3.12 - Anaconda Environment
-
-# Core Streamlit and web framework
 streamlit==1.40.0
 streamlit-drawable-canvas==0.9.3
-streamlit-plotly-events==0.0.6
-
-# Image processing
 Pillow>=10.0.0
-
-# Numerical computing and scientific libraries
 numpy==1.26.4
 scipy==1.13.1
-
-# Data manipulation and analysis
-pandas==2.3.3
-
-# Geospatial analysis
-geopandas==1.1.1
-
-# Visualization
-matplotlib==3.9.2
+pandas>=2.3.3
+matplotlib>=3.9.2
