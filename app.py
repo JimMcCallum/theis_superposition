@@ -336,35 +336,27 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(["📍 Add Wells & Areas", "🔬 Pumping 
 with tab1:
     st.header("Well Placement & Area Definition")
     
-# Load basemap or create blank canvas
-import os
-base_map_path = "Training_base_map.png"
+    # Load basemap or create blank canvas
+    import os
+    base_map_path = "Training_base_map.png"
 
-st.write(f"🔍 DEBUG: Looking for base map at: {base_map_path}")
-st.write(f"🔍 DEBUG: Current working directory: {os.getcwd()}")
-st.write(f"🔍 DEBUG: File exists: {os.path.exists(base_map_path)}")
-
-if os.path.exists(base_map_path):
-    st.write(f"🔍 DEBUG: File size: {os.path.getsize(base_map_path)} bytes")
-    try:
-        original_image = Image.open(base_map_path)
-        st.write(f"🔍 DEBUG: Image loaded! Size: {original_image.size}, Mode: {original_image.mode}")
-        target_width = 1000
-        scale = target_width / original_image.width
-        scaled_height = int(original_image.height * scale)
-        resized_image = original_image.resize((target_width, scaled_height))
-        st.success("✅ Base map loaded successfully!")
-    except Exception as e:
-        st.error(f"❌ Error loading image: {e}")
+    if os.path.exists(base_map_path):
+        try:
+            original_image = Image.open(base_map_path)
+            target_width = 1000
+            scale = target_width / original_image.width
+            scaled_height = int(original_image.height * scale)
+            resized_image = original_image.resize((target_width, scaled_height))
+        except Exception as e:
+            st.error(f"❌ Error loading image: {e}")
+            target_width = 1000
+            scaled_height = 600
+            resized_image = Image.new('RGB', (target_width, scaled_height), color='lightgray')
+    else:
+        st.warning(f"⚠️ Base map not found at {base_map_path}")
         target_width = 1000
         scaled_height = 600
         resized_image = Image.new('RGB', (target_width, scaled_height), color='lightgray')
-else:
-    st.warning(f"⚠️ Base map not found at {base_map_path}")
-    st.write(f"🔍 DEBUG: Files in directory: {os.listdir('.')}")
-    target_width = 1000
-    scaled_height = 600
-    resized_image = Image.new('RGB', (target_width, scaled_height), color='lightgray')
 
     # Drawing mode selection
     col1, col2, col3 = st.columns([1, 1, 2])
@@ -490,12 +482,6 @@ else:
                 "fontWeight": "bold"
             })
 
-    # Debug: Display the image separately to verify it's working
-    st.markdown("### 🔍 Debug: Raw Image Display")
-    st.image(resized_image, caption="This should show your base map", use_container_width=True)
-    st.write(f"Resized image dimensions: {resized_image.size}")
-
-    st.write(f"🔍 DEBUG: About to pass image to canvas - Size: {resized_image.size}, Mode: {resized_image.mode}")
     # Canvas
     canvas_result = st_canvas(
         fill_color=selected_color,
