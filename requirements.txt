@@ -1,5 +1,5 @@
-streamlit>=1.40.0
-streamlit-drawable-canvas>=0.9.3
+streamlit==1.40.0
+streamlit-drawable-canvas==0.9.3
 Pillow>=11.0.0
 numpy>=1.26.0
 pandas>=2.3.0
