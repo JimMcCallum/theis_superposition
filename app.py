@@ -331,295 +331,239 @@ if 'polygons' not in st.session_state:
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["📍 Add Wells & Areas", "🔬 Pumping Test", "📊 Area Analysis", "⛏️ Mine Dewatering", "📚 Help & Theory"])
 
 # ============================================================================
-# TAB 1: ADD WELLS AND AREAS - WITH PROPER UPDATING
+# ============================================================================
+# TAB 1: ADD WELLS & AREAS
 # ============================================================================
 with tab1:
-    st.header("Well Placement & Area Definition")
+    st.header("🗺️ Add Wells & Areas")
     
-    # Initialize canvas refresh counter if not exists
-    if 'canvas_refresh' not in st.session_state:
-        st.session_state.canvas_refresh = 0
+    # Define predefined areas of interest (in meters)
+    if 'polygons' not in st.session_state or len(st.session_state.polygons) == 0:
+        st.session_state.polygons = [
+            {
+                "name": "Area_A",
+                "points_meter": [(1000, 1000), (3000, 1000), (3000, 3000), (1000, 3000)],
+                "area_m2": 4000000,
+                "color": "#FF6B6B"
+            },
+            {
+                "name": "Area_B",
+                "points_meter": [(5000, 1500), (7000, 1500), (7000, 3500), (5000, 3500)],
+                "area_m2": 4000000,
+                "color": "#4ECDC4"
+            },
+            {
+                "name": "Area_C",
+                "points_meter": [(1500, 4000), (3500, 4000), (2500, 5500)],
+                "area_m2": 1500000,
+                "color": "#95E1D3"
+            }
+        ]
     
-    # Load basemap
-    try:
-        original_image = Image.open("Training_base_map.png")
-        target_width = 1000
-        scale = target_width / original_image.width
-        scaled_height = int(original_image.height * scale)
-        resized_image = original_image.resize((target_width, scaled_height))
-    except FileNotFoundError:
-        st.warning("Base map not found. Using blank canvas.")
-        resized_image = Image.new('RGB', (1000, 600), color='lightgray')
-        scaled_height = 600
-        target_width = 1000
-
-    # Drawing mode selection
-    col1, col2, col3 = st.columns([1, 1, 2])
+    col1, col2 = st.columns([2, 1])
+    
     with col1:
-        drawing_mode = st.selectbox("Drawing Mode", ["Wells", "Areas (Rectangle)"])
+        st.subheader("📍 Site Map with Grid")
+        
+        # Create figure with grid
+        fig, ax = plt.subplots(figsize=(12, 9))
+        
+        # Set limits (in meters)
+        x_max, y_max = 10000, 6000
+        ax.set_xlim(0, x_max)
+        ax.set_ylim(0, y_max)
+        
+        # Add major grid lines every 1000 meters
+        ax.grid(True, which='major', linestyle='-', linewidth=0.8, alpha=0.4, color='gray')
+        ax.set_xticks(np.arange(0, x_max+1, 1000))
+        ax.set_yticks(np.arange(0, y_max+1, 1000))
+        
+        # Add minor grid lines every 500 meters
+        ax.grid(True, which='minor', linestyle=':', linewidth=0.5, alpha=0.25, color='gray')
+        ax.set_xticks(np.arange(0, x_max+1, 500), minor=True)
+        ax.set_yticks(np.arange(0, y_max+1, 500), minor=True)
+        
+        # Plot predefined areas
+        for area in st.session_state.polygons:
+            polygon = MPLPolygon(area['points_meter'], alpha=0.2, facecolor=area.get('color', '#FF6B6B'), 
+                                edgecolor=area.get('color', '#FF6B6B'), linewidth=2.5)
+            ax.add_patch(polygon)
+            # Add label at centroid
+            xs = [p[0] for p in area['points_meter']]
+            ys = [p[1] for p in area['points_meter']]
+            centroid_x = sum(xs) / len(xs)
+            centroid_y = sum(ys) / len(ys)
+            ax.text(centroid_x, centroid_y, area['name'], 
+                   fontsize=12, fontweight='bold', ha='center', va='center',
+                   bbox=dict(boxstyle='round,pad=0.5', facecolor='white', alpha=0.8, edgecolor=area.get('color', '#FF6B6B'), linewidth=2))
+        
+        # Plot wells
+        type_keys = {
+            "Pumping": "wells_Pumping",
+            "Injection": "wells_Injection",
+            "Monitoring": "wells_Monitoring"
+        }
+        
+        pumping_plotted = False
+        injection_plotted = False
+        monitoring_plotted = False
+        
+        for well_type, key in type_keys.items():
+            if key in st.session_state and st.session_state[key]:
+                for well in st.session_state[key]:
+                    if well_type == 'Pumping':
+                        ax.plot(well['x'], well['y'], 'ro', markersize=14, markeredgecolor='darkred', 
+                               markeredgewidth=2.5, label='Pumping' if not pumping_plotted else '')
+                        ax.text(well['x'], well['y']+200, well['label'], fontsize=10, ha='center', 
+                               fontweight='bold', color='darkred',
+                               bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.7))
+                        pumping_plotted = True
+                    elif well_type == 'Injection':
+                        ax.plot(well['x'], well['y'], 'go', markersize=14, markeredgecolor='darkgreen', 
+                               markeredgewidth=2.5, label='Injection' if not injection_plotted else '')
+                        ax.text(well['x'], well['y']+200, well['label'], fontsize=10, ha='center', 
+                               fontweight='bold', color='darkgreen',
+                               bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.7))
+                        injection_plotted = True
+                    else:  # Monitoring
+                        ax.plot(well['x'], well['y'], 'bs', markersize=12, markeredgecolor='darkblue', 
+                               markeredgewidth=2.5, label='Monitoring' if not monitoring_plotted else '')
+                        ax.text(well['x'], well['y']+200, well['label'], fontsize=10, ha='center', 
+                               fontweight='bold', color='darkblue',
+                               bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.7))
+                        monitoring_plotted = True
+        
+        ax.set_xlabel('X Coordinate (m)', fontsize=13, fontweight='bold')
+        ax.set_ylabel('Y Coordinate (m)', fontsize=13, fontweight='bold')
+        ax.set_title('Site Map - Wells and Areas of Interest', fontsize=15, fontweight='bold', pad=15)
+        ax.set_aspect('equal')
+        
+        # Create custom legend if any wells exist
+        if pumping_plotted or injection_plotted or monitoring_plotted:
+            ax.legend(loc='upper right', fontsize=11, framealpha=0.9)
+        
+        st.pyplot(fig)
+        plt.close()
     
-    if drawing_mode == "Wells":
-        with col2:
-            well_type = st.selectbox("Select Well Type", ["Pumping", "Injection", "Monitoring"])
-        with col3:
-            st.info(f"💡 Draw circles to place {well_type.lower()} wells. Each pixel = {PIXEL_TO_METER} meters.")
-    else:  # Rectangle mode
-        with col2:
-            polygon_name = st.text_input("Area Name", value=f"Area_{len(st.session_state.polygons)+1}", key="rect_name_input")
-        with col3:
-            st.info(f"💡 Click and drag to draw rectangles. They save automatically!")
-
-    # Clear and Refresh buttons
-    col1, col2, col3 = st.columns([1, 1, 2])
-    with col1:
-        if st.button("🗑️ Clear All Wells"):
-            for key in ["wells_Pumping", "wells_Injection", "wells_Monitoring"]:
-                st.session_state[key] = []
-            st.session_state.canvas_refresh += 1
-            st.rerun()
     with col2:
-        if st.button("🗑️ Clear All Areas"):
-            st.session_state.polygons = []
-            st.session_state.canvas_refresh += 1
-            st.rerun()
-    with col3:
-        # Manual refresh button for when canvas doesn't update
-        if st.button("🔄 Refresh Canvas", help="Click if your drawings don't appear"):
-            st.session_state.canvas_refresh += 1
-            st.rerun()
-    
-    # Colors
-    type_colors = {
-        "Pumping": "rgba(0, 0, 255, 0.6)",
-        "Injection": "rgba(0, 128, 0, 0.6)",
-        "Monitoring": "rgba(255, 165, 0, 1.0)",
-        "Rectangle": "rgba(255, 0, 255, 0.3)"
-    }
-    
-    # Canvas configuration
-    if drawing_mode == "Wells":
-        selected_color = type_colors[well_type]
-        canvas_drawing_mode = "circle"
-    else:  # Rectangle mode
-        selected_color = type_colors["Rectangle"]
-        canvas_drawing_mode = "rect"
-    
-    type_keys = {
-        "Pumping": "wells_Pumping",
-        "Injection": "wells_Injection",
-        "Monitoring": "wells_Monitoring"
-    }
-    type_prefix = {"Pumping": "P", "Injection": "I", "Monitoring": "M"}
-
-    # Prepare initial drawing with existing wells
-    initial_drawing = {"objects": []}
-    
-    # Add existing wells
-    for label, key in type_keys.items():
-        for well in st.session_state[key]:
-            color = type_colors[well["type"]]
-            x_pixel = well.get("x_pixel", well["x"] / PIXEL_TO_METER)
-            y_pixel = well.get("y_pixel", well["y"] / PIXEL_TO_METER)
-            initial_drawing["objects"].append({
-                "type": "circle",
-                "left": x_pixel - 5,
-                "top": y_pixel - 5,
-                "radius": 5,
-                "fill": color
-            })
-            initial_drawing["objects"].append({
-                "type": "text",
-                "left": x_pixel + 8,
-                "top": y_pixel - 5,
-                "text": well["label"],
-                "font": "Arial",
-                "fontSize": 12,
-                "fill": color
-            })
-    
-    # Add existing rectangles (stored as polygons with 4 vertices)
-    for poly in st.session_state.polygons:
-        points = poly['points_pixel']
-        if len(points) == 4:  # Only show rectangles
-            # Calculate rectangle bounds
-            x_coords = [p[0] for p in points]
-            y_coords = [p[1] for p in points]
-            left = min(x_coords)
-            top = min(y_coords)
-            width = max(x_coords) - left
-            height = max(y_coords) - top
-            
-            initial_drawing["objects"].append({
-                "type": "rect",
-                "left": left,
-                "top": top,
-                "width": width,
-                "height": height,
-                "fill": "rgba(255, 0, 255, 0.2)",
-                "stroke": "rgba(255, 0, 255, 1.0)",
-                "strokeWidth": 2
-            })
-            
-            # Add label at center
-            center_x = left + width / 2
-            center_y = top + height / 2
-            initial_drawing["objects"].append({
-                "type": "text",
-                "left": center_x - 20,
-                "top": center_y - 7,
-                "text": poly["name"],
-                "font": "Arial",
-                "fontSize": 14,
-                "fill": "rgba(255, 0, 255, 1.0)",
-                "fontWeight": "bold"
-            })
-
-    # Canvas with dynamic key to force updates
-    canvas_key = f"canvas_{st.session_state.student_id}_{st.session_state.canvas_refresh}"
-    
-    canvas_result = st_canvas(
-        fill_color=selected_color,
-        stroke_width=2,
-        stroke_color="rgba(0, 0, 0, 0)",
-        background_image=resized_image,
-        update_streamlit=True,
-        height=scaled_height,
-        width=target_width,
-        drawing_mode=canvas_drawing_mode,
-        initial_drawing=initial_drawing,
-        key=canvas_key,  # Dynamic key forces refresh
-    )
-    
-    # Instruction text
-    st.caption("💡 **Tip:** After drawing, click the **🔄 Refresh Canvas** button above if your drawing doesn't save automatically.")
-
-    # Process canvas objects
-    if canvas_result.json_data is not None:
-        canvas_objects = canvas_result.json_data["objects"]
+        st.subheader("➕ Add New Well")
         
-        if drawing_mode == "Wells":
-            # Process wells
-            canvas_circles = [obj for obj in canvas_objects if obj["type"] == "circle"]
-            current_canvas_count = len(canvas_circles)
-            total_stored = sum(len(st.session_state[key]) for key in type_keys.values())
+        with st.form("add_well_form"):
+            well_x = st.number_input("X Coordinate (m)", min_value=0, max_value=10000, value=5000, step=100)
+            well_y = st.number_input("Y Coordinate (m)", min_value=0, max_value=6000, value=3000, step=100)
+            well_type = st.selectbox("Well Type", ["Pumping", "Injection", "Monitoring"])
             
-            if current_canvas_count > total_stored:
-                # Get all stored well coordinates
-                all_stored_coords = set()
-                for key in type_keys.values():
-                    all_stored_coords.update({
-                        (round(w.get("x_pixel", w["x"] / PIXEL_TO_METER), 1), 
-                         round(w.get("y_pixel", w["y"] / PIXEL_TO_METER), 1)) 
-                        for w in st.session_state[key]
-                    })
-
-                # Add new wells
-                for obj in canvas_circles:
-                    x_pixel = round(obj["left"] + obj["radius"], 1)
-                    y_pixel = round(obj["top"] + obj["radius"], 1)
-                    x_meter = x_pixel * PIXEL_TO_METER
-                    y_meter = y_pixel * PIXEL_TO_METER
-                    
-                    if (x_pixel, y_pixel) not in all_stored_coords:
-                        prefix = type_prefix[well_type]
-                        count = len(st.session_state[type_keys[well_type]])
-                        label = f"{prefix}{count + 1}"
-                        
-                        st.session_state[type_keys[well_type]].append({
-                            "x": x_meter,
-                            "y": y_meter,
-                            "x_pixel": x_pixel,
-                            "y_pixel": y_pixel,
-                            "label": label,
-                            "type": well_type
-                        })
-                        st.session_state.canvas_refresh += 1
-                        st.success(f"✅ Added {well_type} well: {label}")
-                        st.rerun()
-        
-        elif drawing_mode == "Areas (Rectangle)":
-            # Process rectangles
-            canvas_rectangles = [obj for obj in canvas_objects if obj["type"] == "rect"]
-            
-            if len(canvas_rectangles) > 0:
-                rect_obj = canvas_rectangles[-1]
-                left = rect_obj.get("left", 0)
-                top = rect_obj.get("top", 0)
-                width = rect_obj.get("width", 0)
-                height = rect_obj.get("height", 0)
+            if st.form_submit_button("Add Well", use_container_width=True, type="primary"):
+                # Generate label
+                type_keys = {
+                    "Pumping": "wells_Pumping",
+                    "Injection": "wells_Injection",
+                    "Monitoring": "wells_Monitoring"
+                }
+                type_prefix = {"Pumping": "P", "Injection": "I", "Monitoring": "M"}
                 
-                if width > 5 and height > 5:
-                    # Rectangle corners as polygon
-                    points_pixel = [
-                        (left, top),
-                        (left + width, top),
-                        (left + width, top + height),
-                        (left, top + height)
-                    ]
-                    
-                    # Check if this rectangle is new
-                    is_new = True
-                    for stored_poly in st.session_state.polygons:
-                        if len(stored_poly['points_pixel']) == 4:
-                            first_stored = stored_poly['points_pixel'][0]
-                            first_new = points_pixel[0]
-                            if abs(first_stored[0] - first_new[0]) < 5 and abs(first_stored[1] - first_new[1]) < 5:
-                                stored_width = stored_poly['points_pixel'][1][0] - stored_poly['points_pixel'][0][0]
-                                stored_height = stored_poly['points_pixel'][2][1] - stored_poly['points_pixel'][0][1]
-                                if abs(stored_width - width) < 5 and abs(stored_height - height) < 5:
-                                    is_new = False
-                                    break
-                    
-                    if is_new:
-                        points_meter = [(x * PIXEL_TO_METER, y * PIXEL_TO_METER) for x, y in points_pixel]
-                        area_m2 = width * height * (PIXEL_TO_METER ** 2)
-                        
-                        st.session_state.polygons.append({
-                            "name": polygon_name,
-                            "points_pixel": points_pixel,
-                            "points_meter": points_meter,
-                            "area_m2": area_m2
-                        })
-                        st.session_state.canvas_refresh += 1
-                        st.success(f"✅ Saved rectangle: {polygon_name} ({area_m2:.0f} m²)")
-                        st.rerun()
-
-    # Display summary
-    st.markdown("---")
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("📋 Placed Wells Summary")
-        total_wells = sum(len(st.session_state[key]) for key in type_keys.values())
-        st.metric("Total Wells", total_wells)
+                key = type_keys[well_type]
+                if key not in st.session_state:
+                    st.session_state[key] = []
+                
+                prefix = type_prefix[well_type]
+                type_count = len(st.session_state[key])
+                new_label = f"{prefix}{type_count + 1}"
+                
+                st.session_state[key].append({
+                    "x": float(well_x),
+                    "y": float(well_y),
+                    "type": well_type,
+                    "label": new_label
+                })
+                st.success(f"✅ Added {new_label}")
+                st.rerun()
         
-        cols = st.columns(3)
-        for idx, (label, key) in enumerate(type_keys.items()):
-            with cols[idx]:
-                st.write(f"**{label}** ({len(st.session_state[key])})")
-                if st.session_state[key]:
-                    for well in st.session_state[key]:
-                        st.caption(f"{well['label']}: ({well['x']:.0f}, {well['y']:.0f}) m")
-                else:
-                    st.caption(f"None")
-    
-    with col2:
-        st.subheader("📐 Defined Areas")
-        st.metric("Total Areas", len(st.session_state.polygons))
+        st.markdown("---")
+        st.subheader("📋 Current Wells")
         
-        if st.session_state.polygons:
-            for i, poly in enumerate(st.session_state.polygons):
-                with st.expander(f"**{poly['name']}**", expanded=False):
-                    st.metric("Area", f"{poly['area_m2']:.0f} m²")
-                    st.caption(f"Type: Rectangle")
-                    if st.button(f"🗑️ Remove", key=f"remove_poly_{i}"):
-                        st.session_state.polygons.pop(i)
-                        st.session_state.canvas_refresh += 1
-                        st.rerun()
+        # Display wells by type
+        type_keys = {
+            "Pumping": "wells_Pumping",
+            "Injection": "wells_Injection",
+            "Monitoring": "wells_Monitoring"
+        }
+        
+        total_wells = 0
+        all_wells = []
+        
+        for well_type, key in type_keys.items():
+            if key in st.session_state and st.session_state[key]:
+                total_wells += len(st.session_state[key])
+                all_wells.extend(st.session_state[key])
+        
+        if total_wells > 0:
+            st.metric("Total Wells", total_wells)
+            
+            # Create editable dataframe
+            wells_df = pd.DataFrame(all_wells)
+            
+            edited_df = st.data_editor(
+                wells_df,
+                hide_index=True,
+                use_container_width=True,
+                column_config={
+                    "x": st.column_config.NumberColumn("X (m)", min_value=0, max_value=10000, step=100, format="%d"),
+                    "y": st.column_config.NumberColumn("Y (m)", min_value=0, max_value=6000, step=100, format="%d"),
+                    "type": st.column_config.SelectboxColumn("Type", options=["Pumping", "Injection", "Monitoring"]),
+                    "label": st.column_config.TextColumn("Label", width="small")
+                },
+                key="wells_editor"
+            )
+            
+            # Update session state from edited dataframe
+            if not edited_df.equals(wells_df):
+                # Clear all well lists
+                for key in type_keys.values():
+                    st.session_state[key] = []
+                
+                # Repopulate from edited dataframe
+                for _, row in edited_df.iterrows():
+                    well_type = row['type']
+                    key = type_keys[well_type]
+                    st.session_state[key].append({
+                        "x": float(row['x']),
+                        "y": float(row['y']),
+                        "type": well_type,
+                        "label": row['label']
+                    })
+                st.rerun()
+            
+            # Delete well option
+            st.markdown("##### 🗑️ Remove Well")
+            all_labels = [w['label'] for w in all_wells]
+            well_to_delete = st.selectbox(
+                "Select well to remove:",
+                options=all_labels,
+                key="delete_well_selector"
+            )
+            
+            if st.button("Remove Selected Well", use_container_width=True, type="secondary"):
+                # Find and remove the well
+                for well_type, key in type_keys.items():
+                    if key in st.session_state:
+                        st.session_state[key] = [w for w in st.session_state[key] if w['label'] != well_to_delete]
+                st.success(f"✅ Removed {well_to_delete}")
+                st.rerun()
         else:
-            st.caption("No areas defined yet")
+            st.info("No wells placed yet. Add wells using the form above.")
+        
+        st.markdown("---")
+        st.subheader("📐 Predefined Areas")
+        for area in st.session_state.polygons:
+            area_ha = area['area_m2'] / 10000  # Convert to hectares
+            st.markdown(f"**{area['name']}**: {len(area['points_meter'])} vertices, {area_ha:.1f} ha")
+        
+        if st.button("🗑️ Clear All Wells", use_container_width=True):
+            for key in type_keys.values():
+                st.session_state[key] = []
+            st.rerun()
 
-# ============================================================================
 # TAB 2: PUMPING TEST (UNCHANGED)
 # ============================================================================
 with tab2:
