@@ -1153,10 +1153,7 @@ with tab3:
                                          key="shared_rwell",
                                          help="Used in both Dewatering and Regional Impacts tabs")
         
-        # Store in session state for use in Regional Impacts tab
-        st.session_state['shared_T'] = shared_T
-        st.session_state['shared_S'] = shared_S
-        st.session_state['shared_rwell'] = shared_rwell
+        # Note: Values are automatically stored in session state via the 'key' parameter above
         
         # Time-series parameters
         st.subheader("⏱️ Time-Series Parameters")
