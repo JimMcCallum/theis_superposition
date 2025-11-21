@@ -56,7 +56,7 @@ SOUTH_PIT_BENCHES = np.array([
 ])
 
 # Initial water table elevation (meters above datum)
-INITIAL_WATER_TABLE = 665.0
+INITIAL_WATER_TABLE = 565.0
 
 
 # ============================================================================
@@ -1639,7 +1639,12 @@ with tab4:
     # Well configuration
     st.subheader("🚰 Active Wells Configuration")
     
-    use_placed_wells = st.checkbox("Use wells from 'Add Wells & Areas' tab", value=True, key="use_placed_mine")
+    col1, col2 = st.columns(2)
+    with col1:
+        use_placed_wells = st.checkbox("Use wells from 'Add Wells & Areas' tab", value=True, key="use_placed_mine")
+    with col2:
+        sync_dewatering = st.checkbox("📋 Sync configuration from Dewatering tab", value=True, key="sync_dewatering",
+                                      help="Use same pump rates and timing as configured in Dewatering tab")
     
     active_wells_mine = []
     
@@ -1650,7 +1655,10 @@ with tab4:
         if not pumping_wells_list and not injection_wells_list:
             st.warning("⚠️ No wells placed. Add wells in the first tab or uncheck the box above.")
         else:
-            st.success(f"Found {len(pumping_wells_list)} pumping and {len(injection_wells_list)} injection wells")
+            if sync_dewatering:
+                st.info("📋 Using well configuration from Dewatering tab. Modify settings there to update both tabs.")
+            else:
+                st.success(f"Found {len(pumping_wells_list)} pumping and {len(injection_wells_list)} injection wells")
             
             # Pumping wells with recovery option
             if pumping_wells_list:
@@ -1658,84 +1666,152 @@ with tab4:
                 
                 # Create expandable sections for each well
                 for idx, well in enumerate(pumping_wells_list):
-                    with st.expander(f"**{well['label']}** - ({well['x']:.0f}, {well['y']:.0f}) m", expanded=True):
-                        col1, col2, col3, col4 = st.columns(4)
+                    # Check if we should sync from dewatering tab
+                    if sync_dewatering:
+                        # Get values from dewatering tab (area_* keys)
+                        dewater_Q_key = f"area_Q_{well['label']}"
+                        dewater_ton_key = f"area_ton_{well['label']}"
+                        dewater_recovery_key = f"area_recovery_{well['label']}"
+                        dewater_toff_key = f"area_toff_{well['label']}"
+                        dewater_active_key = f"area_active_{well['label']}"
                         
-                        with col1:
-                            Q = st.number_input(f"Rate [m³/day]", 
-                                               value=1000.0, min_value=0.0, step=100.0,
-                                               key=f"mine_Q_{well['label']}")
-                        with col2:
-                            ton = st.number_input(f"Start Time [days]", 
-                                                 value=0.01, min_value=0.001, step=0.1,
-                                                 key=f"mine_ton_{well['label']}")
-                        with col3:
-                            include_recovery = st.checkbox(f"Include Recovery", value=False, 
-                                                          key=f"mine_recovery_{well['label']}",
-                                                          help="Simulate when this well stops pumping")
-                        with col4:
-                            active = st.checkbox(f"Active", value=True, key=f"mine_active_{well['label']}")
+                        # Use dewatering tab values if they exist, otherwise use defaults
+                        Q = st.session_state.get(dewater_Q_key, 1000.0)
+                        ton = st.session_state.get(dewater_ton_key, 0.01)
+                        include_recovery = st.session_state.get(dewater_recovery_key, False)
+                        active = st.session_state.get(dewater_active_key, True)
+                        toff = st.session_state.get(dewater_toff_key, None) if include_recovery else None
                         
-                        # Recovery time input
-                        if include_recovery:
-                            toff = st.number_input(f"Stop Time [days]", 
-                                                  value=max(100.0, ton+1.0), 
-                                                  min_value=ton+0.01, step=1.0,
-                                                  key=f"mine_toff_{well['label']}",
-                                                  help="When this well stops pumping (recovery begins)")
-                        else:
-                            toff = None
-                        
-                        if active and Q > 0:
-                            active_wells_mine.append({
-                                'x': well['x'],
-                                'y': well['y'],
-                                'Q': Q,
-                                'ton': ton,
-                                'toff': toff,
-                                'label': well['label'],
-                                'type': 'Pumping'
-                            })
+                        # Display as read-only info
+                        with st.expander(f"**{well['label']}** - ({well['x']:.0f}, {well['y']:.0f}) m", expanded=False):
+                            col1, col2, col3 = st.columns(3)
+                            with col1:
+                                st.metric("Rate", f"{Q:.0f} m³/day")
+                            with col2:
+                                st.metric("Start", f"{ton:.2f} days")
+                            with col3:
+                                if include_recovery and toff is not None:
+                                    st.metric("Stop", f"{toff:.0f} days")
+                                else:
+                                    st.metric("Stop", "Continuous")
+                            if active:
+                                st.success("✓ Active")
+                            else:
+                                st.warning("✗ Inactive")
+                    else:
+                        # Original configuration (user can modify)
+                        with st.expander(f"**{well['label']}** - ({well['x']:.0f}, {well['y']:.0f}) m", expanded=True):
+                            col1, col2, col3, col4 = st.columns(4)
+                            
+                            with col1:
+                                Q = st.number_input(f"Rate [m³/day]", 
+                                                   value=1000.0, min_value=0.0, step=100.0,
+                                                   key=f"mine_Q_{well['label']}")
+                            with col2:
+                                ton = st.number_input(f"Start Time [days]", 
+                                                     value=0.01, min_value=0.001, step=0.1,
+                                                     key=f"mine_ton_{well['label']}")
+                            with col3:
+                                include_recovery = st.checkbox(f"Include Recovery", value=False, 
+                                                              key=f"mine_recovery_{well['label']}",
+                                                              help="Simulate when this well stops pumping")
+                            with col4:
+                                active = st.checkbox(f"Active", value=True, key=f"mine_active_{well['label']}")
+                            
+                            # Recovery time input
+                            if include_recovery:
+                                toff = st.number_input(f"Stop Time [days]", 
+                                                      value=max(100.0, ton+1.0), 
+                                                      min_value=ton+0.01, step=1.0,
+                                                      key=f"mine_toff_{well['label']}",
+                                                      help="When this well stops pumping (recovery begins)")
+                            else:
+                                toff = None
+                    
+                    if active and Q > 0:
+                        active_wells_mine.append({
+                            'x': well['x'],
+                            'y': well['y'],
+                            'Q': Q,
+                            'ton': ton,
+                            'toff': toff,
+                            'label': well['label'],
+                            'type': 'Pumping'
+                        })
             
             # Injection wells
             if injection_wells_list:
                 st.markdown("**⚙️ Injection Wells:**")
                 
                 for idx, well in enumerate(injection_wells_list):
-                    with st.expander(f"**{well['label']}** - ({well['x']:.0f}, {well['y']:.0f}) m", expanded=True):
-                        col1, col2, col3, col4 = st.columns(4)
+                    # Check if we should sync from dewatering tab
+                    if sync_dewatering:
+                        # Get values from dewatering tab (area_* keys)
+                        dewater_Q_key = f"area_Q_{well['label']}"
+                        dewater_ton_key = f"area_ton_{well['label']}"
+                        dewater_stop_key = f"area_stop_{well['label']}"
+                        dewater_toff_key = f"area_toff_{well['label']}"
+                        dewater_active_key = f"area_active_{well['label']}"
                         
-                        with col1:
-                            Q = st.number_input(f"Rate [m³/day]", 
-                                               value=500.0, min_value=0.0, step=100.0,
-                                               key=f"mine_Q_{well['label']}")
-                        with col2:
-                            ton = st.number_input(f"Start Time [days]", 
-                                                 value=0.01, min_value=0.001, step=0.1,
-                                                 key=f"mine_ton_{well['label']}")
-                        with col3:
-                            include_recovery = st.checkbox(f"Include Stop", value=False, 
-                                                          key=f"mine_recovery_{well['label']}",
-                                                          help="Simulate when this well stops injecting")
-                        with col4:
-                            active = st.checkbox(f"Active", value=True, key=f"mine_active_{well['label']}")
+                        # Use dewatering tab values if they exist, otherwise use defaults
+                        Q = st.session_state.get(dewater_Q_key, 500.0)
+                        ton = st.session_state.get(dewater_ton_key, 0.01)
+                        include_stop = st.session_state.get(dewater_stop_key, False)
+                        active = st.session_state.get(dewater_active_key, True)
+                        toff = st.session_state.get(dewater_toff_key, None) if include_stop else None
                         
-                        if include_recovery:
-                            toff = st.number_input(f"Stop Time [days]", 
-                                                  value=max(100.0, ton+1.0), 
-                                                  min_value=ton+0.01, step=1.0,
-                                                  key=f"mine_toff_{well['label']}")
-                        else:
-                            toff = None
-                        
-                        if active and Q > 0:
-                            active_wells_mine.append({
-                                'x': well['x'],
-                                'y': well['y'],
-                                'Q': -Q,  # Negative for injection
-                                'ton': ton,
-                                'toff': toff,
-                                'label': well['label'],
+                        # Display as read-only info
+                        with st.expander(f"**{well['label']}** - ({well['x']:.0f}, {well['y']:.0f}) m", expanded=False):
+                            col1, col2, col3 = st.columns(3)
+                            with col1:
+                                st.metric("Rate", f"{Q:.0f} m³/day")
+                            with col2:
+                                st.metric("Start", f"{ton:.2f} days")
+                            with col3:
+                                if include_stop and toff is not None:
+                                    st.metric("Stop", f"{toff:.0f} days")
+                                else:
+                                    st.metric("Stop", "Continuous")
+                            if active:
+                                st.success("✓ Active")
+                            else:
+                                st.warning("✗ Inactive")
+                    else:
+                        # Original configuration (user can modify)
+                        with st.expander(f"**{well['label']}** - ({well['x']:.0f}, {well['y']:.0f}) m", expanded=True):
+                            col1, col2, col3, col4 = st.columns(4)
+                            
+                            with col1:
+                                Q = st.number_input(f"Rate [m³/day]", 
+                                                   value=500.0, min_value=0.0, step=100.0,
+                                                   key=f"mine_Q_{well['label']}")
+                            with col2:
+                                ton = st.number_input(f"Start Time [days]", 
+                                                     value=0.01, min_value=0.001, step=0.1,
+                                                     key=f"mine_ton_{well['label']}")
+                            with col3:
+                                include_stop = st.checkbox(f"Include Stop", value=False, 
+                                                              key=f"mine_recovery_{well['label']}",
+                                                              help="Simulate when this well stops injecting")
+                            with col4:
+                                active = st.checkbox(f"Active", value=True, key=f"mine_active_{well['label']}")
+                            
+                            if include_stop:
+                                toff = st.number_input(f"Stop Time [days]", 
+                                                      value=max(100.0, ton+1.0), 
+                                                      min_value=ton+0.01, step=1.0,
+                                                      key=f"mine_toff_{well['label']}")
+                            else:
+                                toff = None
+                    
+                    if active and Q > 0:
+                        active_wells_mine.append({
+                            'x': well['x'],
+                            'y': well['y'],
+                            'Q': -Q,  # Negative for injection
+                            'ton': ton,
+                            'toff': toff,
+                            'label': well['label'],
                                 'type': 'Injection'
                             })
     
@@ -1866,12 +1942,9 @@ with tab4:
                 if analysis_mode in ["🗺️ Drawdown Map", "🎯 Both"]:
                     st.info(f"🗺️ Computing drawdown map at t = {map_time} days...")
                     
-                    # Determine map extent from well locations
-                    all_x = [w['x'] for w in active_wells_mine]
-                    all_y = [w['y'] for w in active_wells_mine]
-                    
-                    x_min, x_max = min(all_x) - 500, max(all_x) + 500
-                    y_min, y_max = min(all_y) - 500, max(all_y) + 500
+                    # Use same map extent as tab 1 for consistency
+                    x_min, x_max = 0, 10000
+                    y_min, y_max = 0, 6000
                     
                     # Create grid
                     x_grid = np.linspace(x_min, x_max, map_resolution)
