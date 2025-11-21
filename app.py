@@ -56,7 +56,7 @@ SOUTH_PIT_BENCHES = np.array([
 ])
 
 # Initial water table elevation (meters above datum)
-INITIAL_WATER_TABLE = 565.0
+INITIAL_WATER_TABLE = 665.0
 
 
 # ============================================================================
