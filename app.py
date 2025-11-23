@@ -1904,7 +1904,7 @@ with tab4:
         col1, col2 = st.columns(2)
         with col1:
             ts_end_time = st.number_input("End Time [days]", 
-                                          value=365.0, min_value=365., max_value=36500, step=365.0,
+                                          value=365.0, min_value=365., max_value=36500., step=365.0,
                                           help="Duration of monitoring period")
             ts_n_times = st.number_input("Number of Time Steps", 
                                          value=100, min_value=20, max_value=500, step=10)
