@@ -2437,11 +2437,32 @@ with tab5:
     This simulator helps you understand groundwater flow to wells. This is not designed to be an exact replication of a real-world scenario but rather help understand the concepts of well hydraulics appropriate to pumping tests and dewatering. The exercise unitises superposition of analytical solutions to represent multiple pumps during dewatering.
     
     ### 🔧 How to Use
-    1. **Add Wells & Areas Tab**: Place pumping/monitoring wells and draw areas of interest
-    2. **Pumping Test Tab**: Configure test parameters and run simulation
+    1. **Add Wells & Areas Tab**: Place pumping/monitoring wells and injection wells
+    2. **Pumping Test Tab**: Configure test parameters and run simulation to generate data, and analuys the data to determine aquifer properties.
     3. **Area Analysis Tab**: Evaluate average drawdown in defined polygonal areas
     4. **Mine Dewatering Tab**: Predict drawdown from multiple wells
     
-    ### 📐 Theory
+    ### 📐 Exercise 1
+    1. Place a pumping well close to the mine site (e.g., within 200m)
+    2. Add a monitoring well ~10m from the pumping well.
+    3. Configure a pumping test (e.g., Q=4320 m³/day for 10 days) and run the simulation.
+    4. Analyse the time-series data to estimate T and S. Move the sliders to match the values and focus on replicating the late time data.
+    5. Repeat steps 1-4 with two more combinations of pumping and monitoring well locations. Try running tests for 20 days and 50 days.
+    6. Compare your estimated T and S values from each test.
+    7. Use the save session feature in the left hang menu (download the file). This will be used in exercise 2.
+                
+    ### 📐 Exercise 2:
+    1. Load your saved session from exercise 1.
+    2. Use the mine dewatering tab. Staring with your existing wells.
+    3. use the figures of the target water level vs preducted water level to observe how the existing wells preform in dewatering the mine sites.
+    4. Add additional wells as needed to achieve the target water levels.
+    5. Consider the recovery by utilising the "Include recovery Tab" for each well.
+    6. Try to minimise the number of wells and pumping rates while achieving the target water levels.
+    
+    ### 📐 Exercise 3:
+    1. Explore the impact of dewatering on the regional groundwater levels using the regional impacts tab.
+    2. Observe how drawdown propagates over time and distance from the mine site, including at the GDE.
+    3. Add a mionitoring well at the GDE location to observe the time-series drawdown there.
+    4. Consider strategies to mitigate impacts on the GDE while still achieving mine dewatering (placement of wells, utilisation of injection wells).
     
     """)
