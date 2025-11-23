@@ -1154,8 +1154,8 @@ with tab3:
                                      help="Used in both Dewatering and Regional Impacts tabs")
         with col2:
             shared_S = st.number_input("Storativity (S)", 
-                                     value=0.0001, min_value=1e-6, max_value=0.5, 
-                                     format="%.6f", step=1e-5,
+                                     value=0.01, min_value=1e-3, max_value=0.5, 
+                                     format="%.6f", step=1e-3,
                                      key="shared_S",
                                      help="Used in both Dewatering and Regional Impacts tabs")
         with col3:
@@ -1639,8 +1639,8 @@ with tab4:
                                  key="mine_T")
     with col2:
         mine_S = st.number_input("Storativity (S)", 
-                                 value=0.0001, min_value=1e-6, max_value=0.5, 
-                                 format="%.6f", step=1e-5,
+                                 value=0.01, min_value=1e-3, max_value=0.5, 
+                                 format="%.6f", step=1e-3,
                                  key="mine_S")
     with col3:
         mine_rwell = st.number_input("Well Radius [m]", 
@@ -1880,7 +1880,7 @@ with tab4:
         col1, col2, col3 = st.columns(3)
         with col1:
             map_time = st.number_input("Snapshot Time [days]", 
-                                       value=100.0, min_value=0.01, max_value=3650.0, step=10.0,
+                                       value=365., min_value=365., max_value=36500.0, step=365.
                                        help="Time for drawdown map snapshot")
         with col2:
             map_resolution = st.slider("Map Resolution", 
@@ -1904,7 +1904,7 @@ with tab4:
         col1, col2 = st.columns(2)
         with col1:
             ts_end_time = st.number_input("End Time [days]", 
-                                          value=365.0, min_value=0.1, max_value=7300.0, step=10.0,
+                                          value=365.0, min_value=365., max_value=36500, step=365.0,
                                           help="Duration of monitoring period")
             ts_n_times = st.number_input("Number of Time Steps", 
                                          value=100, min_value=20, max_value=500, step=10)
