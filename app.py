@@ -1880,7 +1880,7 @@ with tab4:
         col1, col2, col3 = st.columns(3)
         with col1:
             map_time = st.number_input("Snapshot Time [days]", 
-                                       value=365., min_value=365., max_value=36500.0, step=365.
+                                       value=365., min_value=365., max_value=36500.0, step=365.,
                                        help="Time for drawdown map snapshot")
         with col2:
             map_resolution = st.slider("Map Resolution", 
