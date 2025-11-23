@@ -379,7 +379,7 @@ if 'polygons' not in st.session_state:
     st.session_state.polygons = []
 
 # Tabs
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["📍 Add Wells & Areas", "🔬 Pumping Test", "⛏️ Dewatering", "🌍 Regional Impacts", "📚 Help & Theory"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["📍 Add Wells & Areas", "🔬 Pumping Test", "⛏️ Dewatering", "🌍 Regional Impacts", "📚 Background and Instructions"])
 
 # ============================================================================
 # ============================================================================
@@ -2430,11 +2430,11 @@ with tab4:
 # TAB 5: HELP
 # ============================================================================
 with tab5:
-    st.header("📚 Help & Theory")
+    st.header("📚 Backgroundand and instructions")
     
     st.markdown("""
     ### 🎯 Purpose
-    This simulator helps you understand groundwater flow during pumping tests.
+    This simulator helps you understand groundwater flow to wells. This is not designed to be an exact replication of a real-world scenario but rather help understand the concepts of well hydraulics appropriate to pumping tests and dewatering. The exercise unitises superposition of analytical solutions to represent multiple pumps during dewatering.
     
     ### 🔧 How to Use
     1. **Add Wells & Areas Tab**: Place pumping/monitoring wells and draw areas of interest
@@ -2444,29 +2444,4 @@ with tab5:
     
     ### 📐 Theory
     
-    **Theis Solution (Confined Aquifer)**
-    - Assumes: Homogeneous, isotropic, confined aquifer
-    - Key parameters: T (transmissivity), S (storativity)
-    
-    **Neuman Solution (Unconfined Aquifer)**
-    - Accounts for delayed yield from storage
-    - Key parameters: T, S, Sy (specific yield), anisotropy
-    
-    ### 📊 Area Analysis
-    - Define areas using polygon drawing tool
-    - Calculate average drawdown within each area
-    - Compare impacts across different regions
-    - Useful for environmental impact assessment
-    
-    ### 🧮 Analysis Tasks
-    1. **Cooper-Jacob Method**: Use semi-log plot to estimate T and S
-    2. **Curve Matching**: Match observed data to type curves
-    3. **Distance-Drawdown**: Analyze drawdown vs distance at fixed time
-    4. **Area Impact**: Evaluate drawdown in specific areas
-    
-    ### 💡 Tips
-    - Place monitoring wells at various distances
-    - Define areas around sensitive features (wetlands, rivers, etc.)
-    - Longer pumping tests provide more data
-    - Compare confined vs unconfined solutions
     """)
