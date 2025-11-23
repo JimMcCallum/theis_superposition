@@ -438,6 +438,17 @@ with tab1:
                 ],
                 "area_m2": 251257,
                 "color": "#228B22"
+            },
+            {
+                "name": "GDE (Riparian Zone)",
+                "points_meter": [
+                    (1200, 3800), (1500, 3750), (1700, 3650), (1850, 3500),
+                    (1900, 3300), (1850, 3100), (1700, 2950), (1500, 2900),
+                    (1300, 2950), (1150, 3100), (1100, 3300), (1150, 3500),
+                    (1200, 3650)
+                ],
+                "area_m2": 298500,
+                "color": "#00CED1"
             }
         ]
     
@@ -1210,7 +1221,7 @@ with tab3:
                             
                             with col1:
                                 Q = st.number_input(f"Rate [m³/day]", 
-                                                   value=1000.0, min_value=0.0, step=100.0,
+                                                   value=4320.0, min_value=0.0, step=100.0,
                                                    key=f"area_Q_{well['label']}")
                             with col2:
                                 ton = st.number_input(f"Start [days]", 
@@ -1725,7 +1736,7 @@ with tab4:
                             
                             with col1:
                                 Q = st.number_input(f"Rate [m³/day]", 
-                                                   value=1000.0, min_value=0.0, step=100.0,
+                                                   value=4320.0, min_value=0.0, step=100.0,
                                                    key=f"mine_Q_{well['label']}")
                             with col2:
                                 ton = st.number_input(f"Start Time [days]", 
